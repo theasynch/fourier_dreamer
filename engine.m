@@ -1,60 +1,66 @@
-% Ensure signal package is loaded (no symbolic or extra stuff needed here)
 pkg load signal;
 
-% Number of points and parameter
+% Parameters
 N = 300;
 t = linspace(0, 2*pi, N);
 
-% Define the shape (Lissajous Curve Style)
+% Shape Definition
 x = cos(3*t) + cos(5*t);
 y = sin(4*t) + sin(2*t);
-z = x + 1i * y;
+z = x + 1i*y;
 
-% Apply Fourier Transform
+% Fourier Transform
 Z = fft(z) / N;
 freqs = fftshift((-floor(N/2):ceil(N/2)-1));
 Z = fftshift(Z);
 
-% Sort by magnitude (for cleaner visuals)
+% Sort by magnitude
 [~, idx] = sort(abs(Z), 'descend');
 Z_sorted = Z(idx);
 freqs_sorted = freqs(idx);
 
-% Animation Setup
-num_terms = 50;       % Number of epicycles
-trace = zeros(1, N);  % Stores traced shape
+% Settings
+num_terms = 50;
+trace = zeros(1, N);
 
-figure;
+% Create figure
+fig = figure('Name', 'Fourier Drawing Engine', 'NumberTitle', 'off');
+
 for frame = 1:N
-    clf;
-    axis equal off;
+    if ~isvalid(fig) || ~ishandle(fig)  % Break the loop if the window is closed
+        disp('Figure closed. Animation stopped.');
+        break;
+    end
+
+    clf(fig);  % Clear figure
+    axis equal;
+    axis([-3 3 -3 3]); % Adjust as needed
+    axis off;
     hold on;
 
-    point = 0;
     origin = 0;
-
     for k = 1:num_terms
         freq = freqs_sorted(k);
         coeff = Z_sorted(k);
         radius = abs(coeff);
         phase = angle(coeff);
 
-        prev_point = origin;
-        origin = origin + radius * exp(1i * (2 * pi * freq * t(frame) + phase));
-
         % Draw circle
         theta = linspace(0, 2*pi, 100);
-        circ_x = real(prev_point) + radius * cos(theta);
-        circ_y = imag(prev_point) + radius * sin(theta);
+        circ_x = real(origin) + radius * cos(theta);
+        circ_y = imag(origin) + radius * sin(theta);
         plot(circ_x, circ_y, 'b', 'LineWidth', 0.5);
 
         % Draw rotating vector
-        plot([real(prev_point), real(origin)], [imag(prev_point), imag(origin)], 'r');
+        new_point = origin + radius * exp(1i * (2*pi*freq*t(frame) + phase));
+        plot([real(origin), real(new_point)], [imag(origin), imag(new_point)], 'r');
+        origin = new_point;
     end
 
     trace(frame) = origin;
     plot(real(trace(1:frame)), imag(trace(1:frame)), 'k', 'LineWidth', 2);
 
-    pause(0.01);  % Adjust for smoother playback
+
+    pause(0.01);
 end
 
